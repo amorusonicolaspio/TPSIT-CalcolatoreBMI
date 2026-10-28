@@ -1,87 +1,96 @@
 <?php
-    // Verifica richiesta e reindirizzamento
+    // Verifica metodo richiesta,se GET reindirizza form
     if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         header("Location: form.html");
+        exit;
+    }
+
+    // flag controllo validazione dati
+    $dati_validi = true;
+
+
+    // Validazione Input
+
+    if (isset($_POST["nome"]) && trim($_POST["nome"]) != "") {
+        $nome = trim($_POST["nome"]);
     } else {
-        // Lettura e Controlli input
-        $nome = $_POST["nome"];
+        $nome = "NOT_VALID";
+        $dati_validi = false;
+    }
 
-        if (isset($_POST["peso"])) {
-            $peso = $_POST["peso"];
-            if ($peso <= 0) {
-                $peso = "NOT_VALD";
-            }
+    if (isset($_POST["altezza"]) && is_numeric($_POST["altezza"]) && $_POST["altezza"] > 0) {
+        $altezza = $_POST["altezza"];
+    } else {
+        $altezza = "NOT_VALID";
+        $dati_validi = false;
+    }
+
+    if (isset($_POST["peso"]) && is_numeric($_POST["peso"]) && $_POST["peso"] > 0) {
+        $peso = $_POST["peso"];
+    } else {
+        $peso = "NOT_VALID";
+        $dati_validi = false;
+    }
+
+    // controllo validazione input e calcolo se validi
+    if ($dati_validi) {
+        $altezza_metri = $altezza / 100;
+        $bmi = $peso / ($altezza_metri * $altezza_metri);
+        // Arrotondamento a 2 decimali
+        $bmi_formattato = round($bmi, 2);
+
+        // Controllo della fascia di peso
+        if ($bmi < 18.5) {
+            $classe = "sottopeso";
+            $fascia = "SOTTOPESO";
+        } else if ($bmi < 25) {
+            $classe = "normopeso";
+            $fascia = "NORMOPESO";
+        } else if ($bmi < 30) {
+            $classe = "sovrappeso";
+            $fascia = "SOVRAPPESO";
         } else {
-            $peso = "NOT_VALD";
+            $classe = "obesita";
+            $fascia = "OBESITÀ";
         }
 
-        if (isset($_POST["altezza"])) {
-            $altezza = $_POST["altezza"];
-            if ($altezza <= 0) {
-                $altezza = "NOT_VALD";
-            }
-        } else {
-            $altezza = "NOT_VALD";
-        }
+    } else {
+        $bmi = "NOT_VALID";
+        $classe = "NOT_VALID";
+    }
 
-        if ($nome == "NOT_VALD" || $peso == "NOT_VALD" || $altezza == "NOT_VALD") {
-            $bmi = "NOT_VALD";
-            $bmi_formattato = "NOT_VALD";
-            $classe = "NOT_VALD";
-        } else {
-            // Calcolo del BMI: peso / (altezza in metri)^2
-            $altezza_metri = $altezza / 100;
-            $bmi = $peso / ($altezza_metri * $altezza_metri);
-            
-            // Arrotondamento a 2 decimali
-            $bmi_formattato = round($bmi, 2);
+    // log
+    $fileLog = fopen("log.csv", "a");
 
+    $record = "";
+    $record .= date("d/m/Y");
+    $record .= ",";
+    $record .= date("H:i:s");
+    $record .= ",";
+    $record .= $_SERVER['REMOTE_ADDR'];
+    $record .= ",";
+    $record .= $nome;
+    $record .= ",";
+    $record .= $altezza;
+    $record .= ",";
+    $record .= $peso;
+    $record .= ",";
+    $record .= $bmi;
+    $record .= ",";
+    $record .= $classe;
+    $record .= "\n";
 
-            // Controllo della fascia di peso
-            if ($bmi < 18.5) {
-                $classe = "sottopeso";
-                $fascia = "SOTTOPESO";
-            } else if ($bmi < 25) {
-                $classe = "normopeso";
-                $fascia = "NORMOPESO";
-            } else if ($bmi < 30) {
-                $classe = "sovrappeso";
-                $fascia = "SOVRAPPESO";
-            } else {                      // Da 30 in poi
-                $classe = "obesita";
-                $fascia = "OBESITÀ";
-            }
-        }
+    fwrite($fileLog, $record);
+    fclose($fileLog);
 
-
-        // Log
-        $fileLog = fopen("log.txt", "a");
-
-        $record = "";
-        $record .= date("d/m/Y");
-        $record .= ",";
-        $record .= date ("H:i:s");
-        $record .= ",";
-        $record .= $_SERVER['REMOTE_ADDR'];
-        $record .= ",";
-        $record .= $nome;
-        $record .= ",";
-        $record .= $altezza;
-        $record .= ",";
-        $record .= $peso;
-        $record .= ",";
-        $record .= $bmi;
-        $record .= ",";
-        $record .= $classe;
-        $record .= "\n";
-
-        fwrite($fileLog, $record);
-        fclose($fileLog);
+    // avviso errore dati non validi
+    if (!$dati_validi) {
+        echo "<h1>Errore: Dati non validi!</h1>";
+        echo "<p>I dati inseriti non sono corretti. L'operazione &egrave stata registrata nel log e annulata.</p>";
+        echo "<br><a href='form.html'>Torna al form</a>";
+        exit;
     }
 ?>
-
-
-
 
 <!DOCTYPE html>
 <html lang="it">
